@@ -1,9 +1,15 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Settings, Scissors } from "lucide-react";
+import { LayoutDashboard, Settings, Scissors, Sparkles, Package, Users, ShoppingCart, CalendarDays, BarChart3 } from "lucide-react";
 import clsx from "clsx";
 
 const LINKS = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/agenda", label: "Agenda", icon: CalendarDays },
+  { to: "/ventas", label: "Ventas", icon: ShoppingCart },
+  { to: "/clientes", label: "Clientes", icon: Users },
+  { to: "/servicios", label: "Servicios", icon: Sparkles },
+  { to: "/productos", label: "Productos", icon: Package },
+  { to: "/estadisticas", label: "Estadísticas", icon: BarChart3 },
   { to: "/configuracion", label: "Configuración", icon: Settings },
 ];
 
