@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Minus, Trash2, ShoppingCart, Receipt } from "lucide-react";
+import { Plus, Minus, Trash2, ShoppingCart, Receipt, AlertTriangle } from "lucide-react";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import Card from "../components/ui/Card";
 import Input from "../components/ui/Input";
@@ -11,7 +11,12 @@ import { useClientes } from "../hooks/useClientes";
 import { useServicios } from "../hooks/useServicios";
 import { useProductos } from "../hooks/useProductos";
 import { useVentas } from "../hooks/useVentas";
-import { VENTA_DEFAULT, calcularTotales, confirmarVenta } from "../services/ventasService";
+import {
+  VENTA_DEFAULT,
+  calcularTotales,
+  confirmarVenta,
+  eliminarVenta,
+} from "../services/ventasService";
 
 const METODOS_PAGO = ["efectivo", "tarjeta", "transferencia"];
 
@@ -28,6 +33,11 @@ export default function Ventas() {
   const [metodoPago, setMetodoPago] = useState("efectivo");
   const [observaciones, setObservaciones] = useState("");
   const [guardando, setGuardando] = useState(false);
+
+  const [borrarId, setBorrarId] = useState(null);
+  const [eliminando, setEliminando] = useState(false);
+  const [errorEliminar, setErrorEliminar] = useState(null);
+  const [avisoExito, setAvisoExito] = useState(null);
 
   const productosMap = useMemo(
     () => Object.fromEntries(productos.map((p) => [p.id, p])),
@@ -101,6 +111,28 @@ export default function Ventas() {
     }
   }
 
+  function abrirBorrar(id) {
+    setErrorEliminar(null);
+    setBorrarId(id);
+  }
+
+  async function confirmarBorrarVenta() {
+    if (!borrarId) return;
+    setEliminando(true);
+    setErrorEliminar(null);
+    try {
+      await eliminarVenta(borrarId);
+      setBorrarId(null);
+      setAvisoExito("Venta eliminada correctamente.");
+      setTimeout(() => setAvisoExito(null), 4000);
+    } catch (e) {
+      console.error("Error eliminando venta:", e);
+      setErrorEliminar("No se pudo eliminar la venta. La información no fue modificada.");
+    } finally {
+      setEliminando(false);
+    }
+  }
+
   return (
     <DashboardLayout title="Ventas">
       <div className="flex flex-col gap-5">
@@ -113,6 +145,12 @@ export default function Ventas() {
             Nueva venta
           </Button>
         </div>
+
+        {avisoExito && (
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm text-green-700">
+            ✅ {avisoExito}
+          </div>
+        )}
 
         {loadingVentas && (
           <div className="flex justify-center py-16">
@@ -137,6 +175,7 @@ export default function Ventas() {
                   <th className="px-4 py-3">Método</th>
                   <th className="px-4 py-3">Total</th>
                   <th className="px-4 py-3">Fecha</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -154,6 +193,17 @@ export default function Ventas() {
                     </td>
                     <td className="px-4 py-3 text-ink-500">
                       {v.creadoEn ? new Date(v.creadoEn).toLocaleDateString("es-AR") : "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end">
+                        <button
+                          onClick={() => abrirBorrar(v.id)}
+                          title="Eliminar venta"
+                          className="rounded-lg p-2 text-red-500 hover:bg-red-50"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -316,6 +366,32 @@ export default function Ventas() {
               Confirmar venta
             </Button>
           </div>
+        </div>
+      </Modal>
+
+      <Modal open={!!borrarId} onClose={() => setBorrarId(null)} title="Eliminar venta">
+        <div className="flex gap-3">
+          <AlertTriangle className="mt-0.5 shrink-0 text-amber-500" size={20} />
+          <p className="text-sm text-ink-700">
+            ¿Estás seguro de que querés eliminar esta venta? Esta acción eliminará el
+            registro de la operación y afectará las estadísticas correspondientes
+            (facturación, ticket promedio, etc.). El cliente, los servicios y los
+            productos del catálogo no se ven afectados; si la venta incluía productos,
+            su stock se restituye.
+          </p>
+        </div>
+
+        {errorEliminar && (
+          <p className="mt-3 text-sm text-red-600">❌ {errorEliminar}</p>
+        )}
+
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setBorrarId(null)} disabled={eliminando}>
+            Cancelar
+          </Button>
+          <Button variant="danger" onClick={confirmarBorrarVenta} loading={eliminando}>
+            Eliminar
+          </Button>
         </div>
       </Modal>
     </DashboardLayout>
